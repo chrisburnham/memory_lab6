@@ -1,9 +1,6 @@
 /*
- * schedulingSim.c
- *
- *  Updated on: Oct 2, 2018
- *      Author: ldamon
- *  Updated by cburnham
+ * memorySim.c
+ *      Author: cburnham
  */
 
 #include <stdbool.h>
@@ -11,17 +8,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "queue.h"
+#include "freelist.h"
 
 FILE * fd;   // input file descriptor
-bool done = false;
+bool m_done = false;
 
-typedef enum Scheduler
-{
-	FCFS, // First Come First Serve
-	SJF, // Shortest Job First
-	SJFP // Shortest Job First Premption
-} Scheduler;
+// typedef enum Scheduler
+// {
+// 	FCFS, // First Come First Serve
+// 	SJF, // Shortest Job First
+// 	SJFP // Shortest Job First Premption
+// } Scheduler;
 
 /*
  Function to determine if a job is arriving during this particular time step.
@@ -37,7 +34,7 @@ int jobArrives(int timestep)
 	{
 		if (fscanf(fd, "%d %d", &nextJobTime, &nextDuration) == EOF)
 		{
-			done = true;
+			m_done = true;
 		}
 		// else have something to work with, so continue....
 	}
@@ -51,6 +48,26 @@ int jobArrives(int timestep)
 	{
 		return 0;
 	}
+}
+
+void Get_next_request(bool* alloc, int* id, int* size)
+{
+	char type[10];
+
+	if(fscanf(fd, "%s %d %d", type, id, size) == EOF)
+	{
+		m_done = true;
+	}
+
+	if(strcmp(type, "ALLOC") == 0)
+	{
+		*alloc = true;
+	}
+	else if(strcmp(type, "FREE") == 0)
+	{
+		*alloc = false;
+	}
+	// else??
 }
 
 /*
@@ -73,119 +90,20 @@ int jobArrives(int timestep)
  
  OUTPUT: void, but the function prints out info about the jobs run
  */
-void doSimulation(Scheduler sched)
+void doSimulation()
 {
-	bool debug_prints = false;
 
-	int current_time = 0;
-	Job current_job;
-	bool running = false;
-	int total_jobs = 0;
-	int max_queue_length = 0;
-	int total_run_time = 0;
-	int total_wait_time = 0;
-
-	current_job.duration = 0;
-	current_job.waitTime = 0;
-
-	while(!done || (queueLength() > 0) || running)
+	while(!m_done)
 	{
-		if(!done)
-		{
-			// Check if we have anything new
-			const int new_job_duration = jobArrives(current_time);
-			if(new_job_duration != 0)
-			{
-				if(debug_prints)
-				{
-					printf("adding new job with %i duration\n", new_job_duration);
-				}
+		bool alloc;
+		int id;
+		int size;
 
-				Job new_job;
-				new_job.duration = new_job_duration;
-				new_job.waitTime = 0;
-				queueAdd(new_job);
-				total_jobs++;
-			}
-		}
+		Get_next_request(&alloc, &id, &size);
 
-		// Get our next job to run
-		if(!running && queueLength() > 0)
-		{
-			switch(sched)
-			{
-				case FCFS:
-					current_job = queueRemoveFirst();
-					break;
-				case SJF:
-					current_job = queueRemoveShortest();
-					break;
-				case SJFP:
-					current_job = queueRemoveShortest();
-					break;
-			}
-
-			if(current_job.duration > 0)
-			{
-				running = true;
-			}
-		}
-
-		// Run a job for the time unit
-		if(running)
-		{
-			if(sched == SJFP && (queueLength() > 0))
-			{
-				Job shortest_queued = queueRemoveShortest();
-				if(shortest_queued.duration < current_job.duration)
-				{
-					if(debug_prints)
-					{
-						printf("Prempting job\n");
-					}
-					queueAdd(current_job);
-					current_job = shortest_queued;
-				}
-				else
-				{
-					queueAdd(shortest_queued);
-				}
-			}
-
-			total_run_time++;
-			current_job.duration--;
-			if(current_job.duration <=0)
-			{
-				total_wait_time += current_job.waitTime;
-				running = false;
-			}
-		}
-
-		const int queue_len = queueLength();
-		if(queue_len > max_queue_length)
-		{
-			max_queue_length = queue_len;
-		}
-
-		if(debug_prints)
-		{
-			printf("At time %i, running a job with %i remaining\n", 
-				     current_time, current_job.duration);
-			printf("Current Queue:\n");
-			queuePrint(); 
-			printf("\n");
-		}
-
-		queueIncrementWaitTimes();
-		current_time++;
+		if(m_done)
+			return;
 	}
-
-	printf("Ran for %i time units. Ran %i jobs. Longest queue length was %i\n", 
-				 current_time, total_jobs, max_queue_length);
-	printf("Total runtime: %i. Total wait time: %i\n", 
-		     total_run_time, total_wait_time);
-	printf("Average wait time: %f\n", 
-		    ((double)total_wait_time / (double)total_jobs));
 }
 
 
@@ -193,7 +111,7 @@ int main(int argc, char *argv[])
 {
 	if (argc != 3)
 	{
-		printf("Usage: %s <FCFS|SJF|SJFP> <scheduleFile>\n", argv[0]);
+		printf("Usage: %s <FCFS|SJF|SJFP> <memoryFile>\n", argv[0]);
 		exit(1);
 	}
 
@@ -205,23 +123,25 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (strcmp(argv[1], "FCFS") == 0)
-		{
-		printf("Running simulation for first come first serve\n");
-		doSimulation(FCFS);
-		}
-	else if (strcmp(argv[1], "SJF") == 0)
-		{
-		printf("Running simulation for shortest job first\n");
-		doSimulation(SJF);
-		}
-	else if (strcmp(argv[1], "SJFP") == 0)
-		{
-		printf("Running simulation for shortest job first with premption\n");
-		doSimulation(SJFP);
-		}
-	else
-		printf("Oops, bad scheduling type: %s", argv[1]);
+	doSimulation();
+
+	// if (strcmp(argv[1], "FCFS") == 0)
+	// 	{
+	// 	printf("Running simulation for first come first serve\n");
+	// 	doSimulation(FCFS);
+	// 	}
+	// else if (strcmp(argv[1], "SJF") == 0)
+	// 	{
+	// 	printf("Running simulation for shortest job first\n");
+	// 	doSimulation(SJF);
+	// 	}
+	// else if (strcmp(argv[1], "SJFP") == 0)
+	// 	{
+	// 	printf("Running simulation for shortest job first with premption\n");
+	// 	doSimulation(SJFP);
+	// 	}
+	// else
+	// 	printf("Oops, bad scheduling type: %s", argv[1]);
 
 }
 
