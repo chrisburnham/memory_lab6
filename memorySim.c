@@ -62,6 +62,46 @@ Node* Find_first(int size)
 	return nd;
 }
 
+// TODO doc
+Node* Find_best(int size)
+{
+	Node* nd = getFirst();
+	Node* best = NULL;
+
+	while(nd != NULL)
+	{
+		if(nd->block.size >= size)
+		{
+			if((best == NULL) || (nd->block.size < best->block.size))
+				best = nd;
+		}
+
+		nd = nd->next;
+	}
+
+	return best;
+}
+
+// TODO doc
+Node* Find_worst(int size)
+{
+	Node* nd = getFirst();
+	Node* worst = NULL;
+
+	while(nd != NULL)
+	{
+		if(nd->block.size >= size)
+		{
+			if((worst == NULL) || (nd->block.size > worst->block.size))
+				worst = nd;
+		}
+
+		nd = nd->next;
+	}
+
+	return worst;
+}
+
 /*
  This is the main function of the simulation.   It should move the time along step by step,
  calling jobArrives(timestep) for each step in time.  If a job arrives, it should be added
@@ -124,11 +164,11 @@ void doSimulation(Alloc_strategy stg)
 					break;
 
 				case BEST:
-					//todo: best
+					nd = Find_best(size);
 					break;
 
 				case WORST:
-				  // todo: worst
+				  nd = Find_worst(size);
 					break;
 			}
 
