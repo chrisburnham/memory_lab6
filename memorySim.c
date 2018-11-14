@@ -129,16 +129,6 @@ void doSimulation(Alloc_strategy stg)
 	int addr = 0;
 	bool debug = true;
 
-
-	// TODO: This should go into the loop whenever we are out
-	MemBlock initial;
-
-	initial.size = BLOCK_SIZE;
-	initial.startingAddr = addr;
-	// addr += BLOCKSIZE
-	insertFirst(initial);
-
-
 	while(!m_done)
 	{
 		bool alloc;
@@ -172,10 +162,29 @@ void doSimulation(Alloc_strategy stg)
 					break;
 			}
 
-			// TODO: if node == NULL add another block
 			if(nd == NULL)
 			{
-				printf("we need to impliment adding blocks\n");
+				// TODO: when we coalse, if we have free mem at the end
+				// subtract that space from needed size
+
+				int need_blocks = size / BLOCK_SIZE
+
+				for(int i = 0; i < need_blocks; i++)
+				{
+
+					// WE need to create these blocks and stick them in at the end
+					// I removed the initilization so need to check that out (may not initilize correctly without addFirst)
+					// also we need to now assign nd to this node
+
+					// MemBlock new_block;
+
+					// new_block.size = BLOCK_SIZE;
+					// new_block.startingAddr = addr;
+					// addr += BLOCKSIZE
+					// insertFirst(new_block);
+				}
+
+
 			}
 
 			allocated[id].startingAddr = nd->block.startingAddr;
