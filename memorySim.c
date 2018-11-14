@@ -10,46 +10,22 @@
 
 #include "freelist.h"
 
+#define MAXSIZE 10000
+
 FILE * fd;   // input file descriptor
 bool m_done = false;
 
-// typedef enum Scheduler
-// {
-// 	FCFS, // First Come First Serve
-// 	SJF, // Shortest Job First
-// 	SJFP // Shortest Job First Premption
-// } Scheduler;
-
-/*
- Function to determine if a job is arriving during this particular time step.
- Returns 0 if no job is arriving
- Returns the duration of the job that arrives if a job does arrive
- */
-int jobArrives(int timestep)
+typedef enum Alloc_strategy
 {
-	static int nextJobTime = -1;
-	static int nextDuration;
+	FIRST, 
+	BEST,  
+	WORST  
+} Alloc_strategy;
 
-	if (nextJobTime == -1)
-	{
-		if (fscanf(fd, "%d %d", &nextJobTime, &nextDuration) == EOF)
-		{
-			m_done = true;
-		}
-		// else have something to work with, so continue....
-	}
-
-	if (nextJobTime == timestep)
-	{
-		nextJobTime = -1;
-		return nextDuration;
-	}
-	else // not up to nextJobTime yet
-	{
-		return 0;
-	}
-}
-
+// Gets the next request from our file
+// alloc is true if we are allocating and false for a free
+// id is the id of the memory block
+// size is the requested size (only applicable for alloc)
 void Get_next_request(bool* alloc, int* id, int* size)
 {
 	char type[10];
@@ -68,6 +44,22 @@ void Get_next_request(bool* alloc, int* id, int* size)
 		*alloc = false;
 	}
 	// else??
+}
+
+// TODO doc
+Node* Find_first(int size)
+{
+	Node* nd = getFirst();
+
+	while(nd != NULL)
+	{
+		if(nd->block.size >= size)
+			break;
+
+		nd = nd->next;
+	}
+
+	return nd;
 }
 
 /*
@@ -90,8 +82,22 @@ void Get_next_request(bool* alloc, int* id, int* size)
  
  OUTPUT: void, but the function prints out info about the jobs run
  */
-void doSimulation()
+// TODO: fix doc
+void doSimulation(Alloc_strategy stg)
 {
+	MemBlock allocated[MAXSIZE];
+	int addr = 0;
+	bool debug = true;
+
+
+	// TODO: This should go into the loop whenever we are out
+	MemBlock initial;
+
+	initial.size = BLOCK_SIZE;
+	initial.startingAddr = addr;
+	// addr += BLOCKSIZE
+	insertFirst(initial);
+
 
 	while(!m_done)
 	{
@@ -103,6 +109,84 @@ void doSimulation()
 
 		if(m_done)
 			return;
+
+		if(debug)
+			printf("%s %i %i\n", alloc ? "ALLOC" : "FREE", id, size);
+
+		if(alloc)
+		{
+			Node* nd;
+
+			switch(stg)
+			{
+				case FIRST:
+					nd = Find_first(size);
+					break;
+
+				case BEST:
+					//todo: best
+					break;
+
+				case WORST:
+				  // todo: worst
+					break;
+			}
+
+			// TODO: if node == NULL add another block
+			if(nd == NULL)
+			{
+				printf("we need to impliment adding blocks\n");
+			}
+
+			allocated[id].startingAddr = nd->block.startingAddr;
+			allocated[id].size = size;
+
+			if(size != nd->block.size)
+			{
+				MemBlock new_block;
+				new_block.startingAddr = nd->block.startingAddr + size;
+				new_block.size = nd->block.size - size;
+				insertAfter(new_block, nd);
+			}
+
+			deleteNode(nd);
+		}
+		else // free
+		{
+			Node* nd = getFirst();
+			bool inserted = false;
+
+			do
+			{
+				if(nd->block.startingAddr > allocated[id].startingAddr)
+				{
+					insertAfter(allocated[id], nd->prev);
+					inserted = true;
+					break;
+				}
+			}
+			while((nd = nd->next) != NULL);
+
+			if(!inserted)
+				insertAfter(allocated[id], getLast());
+
+			allocated[id].size = 0;
+
+			// TODO: coalesce
+		}
+
+		if(debug)
+		{
+			printf("free list:\n");
+			Node* nd = getFirst();
+
+			while(nd != NULL)
+			{
+				printf("  start %i, size %i\n", nd->block.startingAddr, nd->block.size);
+
+				nd = nd->next;
+			}
+		}
 	}
 }
 
@@ -111,7 +195,7 @@ int main(int argc, char *argv[])
 {
 	if (argc != 3)
 	{
-		printf("Usage: %s <FCFS|SJF|SJFP> <memoryFile>\n", argv[0]);
+		printf("Usage: %s <FIRST|BEST|WORST> <memoryFile>\n", argv[0]);
 		exit(1);
 	}
 
@@ -123,25 +207,22 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	doSimulation();
-
-	// if (strcmp(argv[1], "FCFS") == 0)
-	// 	{
-	// 	printf("Running simulation for first come first serve\n");
-	// 	doSimulation(FCFS);
-	// 	}
-	// else if (strcmp(argv[1], "SJF") == 0)
-	// 	{
-	// 	printf("Running simulation for shortest job first\n");
-	// 	doSimulation(SJF);
-	// 	}
-	// else if (strcmp(argv[1], "SJFP") == 0)
-	// 	{
-	// 	printf("Running simulation for shortest job first with premption\n");
-	// 	doSimulation(SJFP);
-	// 	}
-	// else
-	// 	printf("Oops, bad scheduling type: %s", argv[1]);
-
+	if (strcmp(argv[1], "FIRST") == 0)
+	{
+		printf("Running simulation for allocating first\n");
+		doSimulation(FIRST);
+	}
+	else if (strcmp(argv[1], "BEST") == 0)
+	{
+		printf("Running simulation for allocating best\n");
+		doSimulation(BEST);
+	}
+	else if (strcmp(argv[1], "WORST") == 0)
+	{
+		printf("Running simulation for allocating worst\n");
+		doSimulation(WORST);
+	}
+	else
+		printf("Oops, bad scheduling type: %s", argv[1]);
 }
 
