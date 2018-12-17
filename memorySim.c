@@ -132,7 +132,7 @@ void doSimulation(Alloc_strategy stg)
 	}
 
 	int addr = 0;
-	bool debug = true;
+	bool debug = false;
 
 	while(!m_done)
 	{
