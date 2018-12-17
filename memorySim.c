@@ -46,7 +46,7 @@ void Get_next_request(bool* alloc, int* id, int* size)
 	// else??
 }
 
-// TODO doc
+// Get the fist block that size will fit in to
 Node* Find_first(int size)
 {
 	Node* nd = getFirst();
@@ -62,7 +62,7 @@ Node* Find_first(int size)
 	return nd;
 }
 
-// TODO doc
+// Get the smallest block that is larger than size
 Node* Find_best(int size)
 {
 	Node* nd = getFirst();
@@ -82,7 +82,7 @@ Node* Find_best(int size)
 	return best;
 }
 
-// TODO doc
+// Get the largest block, assuming that it is larger than size
 Node* Find_worst(int size)
 {
 	Node* nd = getFirst();
@@ -102,27 +102,7 @@ Node* Find_worst(int size)
 	return worst;
 }
 
-/*
- This is the main function of the simulation.   It should move the time along step by step,
- calling jobArrives(timestep) for each step in time.  If a job arrives, it should be added
- to the job queue.
- 
- Additionally, during each time step, the processor should be kept busy if possible.  If it
- is not already busy, a job should be removed from the queue and should start to run.  If a
- job is already running, then the amount of time remaining should be decremented.  You'll also
- need to be sure to update the wait time on any jobs in the queue.
- 
- There is a global variable, done, which will be set when the entire input file has
- been read and the last job has been returned to the simulation.  You can use that variable to
- control when your simulation should end.
- 
- INPUT sched:  enum  SJF means it should run a shortest job first simulation
-                     FCFS means it should run a first come first serve simulation
-                     SJFP means it should run a shortest job first simulation with premption
- 
- OUTPUT: void, but the function prints out info about the jobs run
- */
-// TODO: fix doc
+// Run our simulation for our given allocation strategy
 void doSimulation(Alloc_strategy stg)
 {
 	MemBlock allocated[MAXSIZE];
@@ -240,6 +220,8 @@ void doSimulation(Alloc_strategy stg)
 			}
 		}
 	}
+
+	// Summary
 
 	printf("Heap grew to %i\n", addr + BLOCK_SIZE);
 	printf("Largest block is %i\n", Find_worst(1)->block.size);
