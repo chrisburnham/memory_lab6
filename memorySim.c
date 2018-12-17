@@ -126,6 +126,11 @@ Node* Find_worst(int size)
 void doSimulation(Alloc_strategy stg)
 {
 	MemBlock allocated[MAXSIZE];
+	for(int i = 0; i < MAXSIZE; i++)
+	{
+		allocated[i].size = 0;
+	}
+
 	int addr = 0;
 	bool debug = true;
 
@@ -138,7 +143,7 @@ void doSimulation(Alloc_strategy stg)
 		Get_next_request(&alloc, &id, &size);
 
 		if(m_done)
-			return;
+			break;
 
 		if(debug)
 			printf("%s %i %i\n", alloc ? "ALLOC" : "FREE", id, size);
@@ -235,6 +240,28 @@ void doSimulation(Alloc_strategy stg)
 			}
 		}
 	}
+
+	printf("Heap grew to %i\n", addr + BLOCK_SIZE);
+	printf("Largest block is %i\n", Find_worst(1)->block.size);
+
+  Node* nd = getFirst();
+	int count = 0;
+  while(nd != NULL)
+	{
+	  count++;
+		nd = nd->next;
+	}
+	printf("%i blocks in free list\n", count);
+
+	count = 0;
+	for(int i = 0; i < 20; i++)
+	{
+		if(allocated[i].size != 0)
+		{
+			count++;
+		}
+	}
+	printf("%i allocated blocks\n", count);
 }
 
 
