@@ -167,24 +167,22 @@ void doSimulation(Alloc_strategy stg)
 				// TODO: when we coalse, if we have free mem at the end
 				// subtract that space from needed size
 
-				int need_blocks = size / BLOCK_SIZE
+				int need_blocks = ((size - 1) / BLOCK_SIZE) + 1;
 
 				for(int i = 0; i < need_blocks; i++)
 				{
+					MemBlock new_block;
 
-					// WE need to create these blocks and stick them in at the end
-					// I removed the initilization so need to check that out (may not initilize correctly without addFirst)
-					// also we need to now assign nd to this node
+					new_block.size = BLOCK_SIZE;
+					new_block.startingAddr = addr;
+					addr += BLOCK_SIZE;
+					insertAfter(new_block, getLast());
 
-					// MemBlock new_block;
-
-					// new_block.size = BLOCK_SIZE;
-					// new_block.startingAddr = addr;
-					// addr += BLOCKSIZE
-					// insertFirst(new_block);
+					if(nd == NULL) // First time through
+					{
+						nd = getLast();
+					}
 				}
-
-
 			}
 
 			allocated[id].startingAddr = nd->block.startingAddr;
